@@ -1,0 +1,17 @@
+<!-- templates/results.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Stock Analysis Results</h2>
+    {% if analyzed_data %}
+        {% for stock_symbol, data in analyzed_data.items() %}
+            <h3>{{ stock_symbol }}</h3>
+            {{ data|safe }}
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            No results available.
+        </div>
+    {% endif %}
+{% endblock %}

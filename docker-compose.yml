@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  my-python-app:
+    build:
+      context: .
+    command: python stock.py

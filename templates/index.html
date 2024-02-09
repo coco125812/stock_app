@@ -1,0 +1,22 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Stock Analysis Tool</h2>
+   <!-- Add this to your 'index.html' file -->
+<form method="post" action="{{ url_for('results') }}">
+    <label for="stock_symbol">Stock Symbol:</label>
+    <input type="text" name="stock_symbol" id="stock_symbol" required>
+    
+    <label>Date Range:</label>
+    <select name="date_range">
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="365">Last 365 days</option>
+    </select>
+    
+    <button type="submit">Submit</button>
+</form>
+
+{% endblock %}
+
