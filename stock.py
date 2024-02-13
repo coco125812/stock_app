@@ -9,21 +9,22 @@ import yfinance as yf
 from pandas.plotting import scatter_matrix
 from matplotlib.pyplot import savefig
 from datetime import datetime, timedelta
-
-
+import logging
 
 app = Flask(__name__)
 
-
+@app.route('/output_images/<filename>')
+def uploaded_file(filename):
+    return send_from_directory('output_images', filename)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         stock_symbol = request.form['stock_symbol']
         date_range_option = request.form['date_range']
-
+        
         start_date, end_date = get_date_range(date_range_option)
-
+ 
         if stock_symbol and start_date and end_date:
             # Call your analysis functions with the selected stock symbol and date range
             analyze_stock(stock_symbol, start_date, end_date)
@@ -31,12 +32,13 @@ def index():
 
     return render_template('index.html')
 
-
 @app.route('/results', methods=['GET', 'POST'])
 def results():
-    print(request.form)
+    app.logger.info("Entering results route...")  # Add info log statement
+    app.logger.info(request.form)  # Log the form data
+
     if request.method == 'POST':
-        selected_stocks = request.form.getlist('stock_symbols')  # Get a list of selected stocks
+        selected_stocks = request.form.get('stock_symbols')  # Get a list of selected stocks
         date_range_option = request.form['date_range']
 
         start_date, end_date = get_date_range(date_range_option)
@@ -50,20 +52,28 @@ def results():
             if len(selected_stocks) == 1:
                 # Single stock selected, display detailed information
                 stock_symbol = selected_stocks[0]
-                context = {'analyzed_data': analyzed_data[stock_symbol].to_html(classes='table table-striped')}
+                context = {'cap': (analyzed_data[stock_symbol])["Market Cap"].to_html(classes='table table-striped'),
+                           'average': (analyzed_data[stock_symbol])["Moving Averages"].to_html(classes='table table-striped')
+                           }
+                app.logger.info(f"Analyzed data for {stock_symbol}: {analyzed_data[stock_symbol]}")  # Log the analyzed data
                 return render_template('results.html', **context)
+                
+
             else:
                 # Multiple stocks selected, generate visualizations
                 pie_chart = generate_pie_chart(analyzed_data)
                 context = {'pie_chart': pie_chart}
+                app.logger.info("Generated pie chart")  # Log the pie chart generation
                 return render_template('results_comparison.html', **context)
 
-        except ValueError as e:
-            return render_template('index.html', error_message=str(e))
+        except Exception as e:
+            app.logger.error(f"Error in results route: {str(e)}")  # Log any errors
+            return render_template('error.html', error_message="An error occurred during analysis. Please try again.")
+    elif request.method == 'GET' :
+    # Handle GET request, for example, redirect to the home page or display an error message
+        app.logger.warning("GET request received in results route without form data.")
+        return redirect(url_for('index'))  # Change 'index' to your actual home route
 
-    elif request.method == 'GET':
-        # Handle GET request, for example, redirect to the home page or display an error message
-        return redirect(url_for('result'))
 
 # ... (existing code)
 
@@ -93,10 +103,13 @@ def analyze_stock(stock_symbols, start_date, end_date):
             moving_averages = calculate_moving_averages(stock_data)
 
             # Store the analyzed data in a DataFrame
-            analyzed_data[stock_symbol] = pd.DataFrame({
-                'Market Cap': market_cap,
-                'Moving Averages': moving_averages
-            })
+            reshaped_market_cap = market_cap.values.flatten()
+            reshaped_moving_averages = moving_averages.values.flatten()
+
+            analyzed_data[stock_symbol] = ({
+            'Market Cap': pd.DataFrame({ 'Market Cap': reshaped_market_cap}),
+            'Moving Averages': pd.DataFrame({'Moving Averages': reshaped_moving_averages})
+             })
 
         except Exception as e:
             # Handle invalid stock symbol
@@ -117,18 +130,16 @@ def calculate_moving_averages(stock_data):
 
 
 
-@app.route('/output_images/<filename>')
-def uploaded_file(filename):
-    return send_from_directory('output_images', filename)
-
 
 def save_plot(plt, filename):
-    output_folder = "output_images"
+    static_folder = "static"
+    output_folder = os.path.join(static_folder, 'output_images')
+    
     os.makedirs(output_folder, exist_ok=True)
     filepath = os.path.join(output_folder, filename)
     plt.savefig(filepath)
-    plt.show()
     plt.close()
+
 
 def get_date_range(option):
     end_date = datetime.now().strftime('%Y-%m-%d')

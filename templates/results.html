@@ -4,8 +4,12 @@
 
 {% block content %}
     <h2>Stock Analysis Results</h2>
-    {% if analyzed_data %}
-        {% for stock_symbol, data in analyzed_data.items() %}
+    {{ analyzed_data }} 
+    {{stock_symbol}}
+    {{ date_range}}
+
+    {% if average %}
+        {% for stock_symbol, data in average.items() %}
             <h3>{{ stock_symbol }}</h3>
             {{ data|safe }}
         {% endfor %}
@@ -14,4 +18,17 @@
             No results available.
         </div>
     {% endif %}
+    {% if cap %}
+    {% for stock_symbol, data in cap.items() %}
+        <h3>{{ stock_symbol }}</h3>
+        {{ data|safe }}
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        No results available.
+    </div>
+{% endif %}
+
+    <!-- Debug output -->
+    <p>Debug Message: Template is rendering.</p>
 {% endblock %}
